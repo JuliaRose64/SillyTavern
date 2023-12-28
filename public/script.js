@@ -2974,9 +2974,11 @@ async function Generate(type, { automatic_trigger, force_name2, quiet_prompt, qu
         return Promise.resolve();
     }
 
-    // Hide swipes if not in a dry run.
     if (!dryRun) {
+        // Hide swipes if not in a dry run.
         hideSwipeButtons();
+        // If generated any message, set the flag to indicate it can't be recreated again.
+        chat_metadata['tainted'] = true;
     }
 
     if (selected_group && !is_group_generating && !dryRun) {
@@ -4128,6 +4130,7 @@ export async function sendMessageAsUser(messageText, messageBias, insertAt = nul
 
     if (messageBias) {
         message.extra.bias = messageBias;
+        message.mes = removeMacros(message.mes);
     }
 
     await populateFileAttachment(message);
@@ -7105,7 +7108,8 @@ async function createOrEditCharacter(e) {
                 crop_data = undefined;
                 eventSource.emit(event_types.CHARACTER_EDITED, { detail: { id: this_chid, character: characters[this_chid] } });
 
-                if (chat.length === 1 && !selected_group) {
+                // Recreate the chat if it hasn't been used at least once (i.e. with continue).
+                if (chat.length === 1 && !selected_group && !chat_metadata['tainted']) {
                     const firstMessage = getFirstMessage();
                     chat[0] = firstMessage;
 
